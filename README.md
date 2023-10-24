@@ -1,11 +1,11 @@
 
 * Ref: https://github.com/SMRT-AIST/fast_gicp
 * Modified by Hyeonwoo Yu, UNIST
-* 
+
 * I add some useful functions for both cpp & python
 * I modify gicp as it utilizes raw covariance by following normalized_ellipse mode (not plane mode),
 * in order to meet the scales for multiple 3D pointclouds
-* 
+
 * => scale = scale / scale[1] .max(1e-3)
 * note that cov = R*S*(R*S)^T = R*SS*R^T, S = scale.asDiagonal();
 * here, R = quaternion.toRotation();
