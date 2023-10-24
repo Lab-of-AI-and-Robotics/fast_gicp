@@ -22,10 +22,10 @@ gicp.set_input_target(target)
 gicp.set_input_source(source)
 
 # set covariance with raw covariance (it does not normalize anything)
-set_source_covariance_from6(array_of_array[cov00, cov01, cov02, cov11, cov12, cov22])
-set_target_covariance_from6(array_of_array[cov00, cov01, cov02, cov11, cov12, cov22])
-set_source_covariance_from3x3( array_of_mat3x3)
-set_target_covariance_from3x3( array_of_mat3x3)
+set_source_covariance_from6(list_of_array[cov00, cov01, cov02, cov11, cov12, cov22])
+set_target_covariance_from6(list_of_array[cov00, cov01, cov02, cov11, cov12, cov22])
+set_source_covariance_from3x3(list_of_mat3x3s)
+set_target_covariance_from3x3(list_of_mat3x3s)
 
 # set covariance from quaternion and scale by following normalized_elipse
 gicp.set_source_covariance_fromqs(list_of_quaternions, list_of_scales)
