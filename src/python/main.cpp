@@ -213,6 +213,20 @@ PYBIND11_MODULE(pygicp, m) {
     	py::list sq_distances = py::cast(gicp.getTargetSqDistances());
     	return py::make_tuple(correspondences, sq_distances);
     })
+    .def("set_source_covariances_fromqs", [] (FastGICP& gicp, py::list listOfSourceQ, py::list listOfScales){
+    	int size = py::len(listOfSourceQ);
+    	if(size!=py::len(listOfScales)){ std::cerr<<"size not matched" <<std::endl; return;}
+    	const auto input_rotationsq = listOfSourceQ.cast<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>>();
+    	const auto input_scales = listOfScales.cast<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>>();
+    	gicp.setSourceCovariances(input_rotationsq, input_scales);
+    })
+    .def("set_target_covariances_fromqs", [] (FastGICP& gicp, py::list listOfSourceQ, py::list listOfScales){
+    	int size = py::len(listOfSourceQ);
+    	if(size!=py::len(listOfScales)){ std::cerr<<"size not matched" <<std::endl; return;}
+    	const auto input_rotationsq = listOfSourceQ.cast<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>>();
+    	const auto input_scales = listOfScales.cast<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>>();
+    	gicp.setTargetCovariances(input_rotationsq, input_scales);
+    })
     .def("set_source_covariances_from6", [] (FastGICP& gicp, py::list listOfSourceCovariancesNumpy){
       /** assume we have something like:
       [ np.array(cov1[0][0], cov1[0][1], cov1[0][2], cov1[1][1], cov1[1][2], cov1[2][2]),

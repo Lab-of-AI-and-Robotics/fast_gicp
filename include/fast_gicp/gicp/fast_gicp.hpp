@@ -59,9 +59,15 @@ public:
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
   void calculateSourceCovariance();
   virtual void setSourceCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs);
+  virtual void setSourceCovariances(
+	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
+	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales);
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
   void calculateTargetCovariance();
   virtual void setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs);
+  virtual void setTargetCovariances(
+	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
+	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales);
   
   const std::vector<int>& getTargetCorrespondences() const { return correspondences_; }
   const std::vector<float>& getTargetSqDistances() const {return sq_distances_;}
@@ -84,10 +90,20 @@ protected:
   virtual double compute_error(const Eigen::Isometry3d& trans) override;
 
   template<typename PointT>
-  bool calculate_covariances(const typename pcl::PointCloud<PointT>::ConstPtr& cloud, pcl::search::Search<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
-  std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& rotationsq,
-  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& scales);
-
+  bool calculate_covariances(
+  	const typename pcl::PointCloud<PointT>::ConstPtr& cloud,
+  	pcl::search::Search<PointT>& kdtree,
+	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
+	std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& rotationsq,
+	std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& scales);
+  
+  void setCovariances(
+	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
+	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales,
+	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
+	std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& rotationsq,
+	std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& scales);
+  
 protected:
   int num_threads_;
   int k_correspondences_;

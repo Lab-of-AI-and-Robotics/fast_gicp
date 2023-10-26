@@ -13,11 +13,19 @@ FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::Fast
   num_threads_ = 1;
 #endif
 
-  k_correspondences_ = 30;
+  k_correspondences_ = 25;
   reg_name_ = "FastGICP";
   corr_dist_threshold_ = std::numeric_limits<float>::max();
+  
+  source_covs_.clear();  
+  source_rotationsq_.clear();
+  source_scales_.clear();
+    
+  target_covs_.clear();
+  target_rotationsq_.clear();
+  target_scales_.clear();
 
-  regularization_method_ = RegularizationMethod::MIN_EIG;
+  regularization_method_ = RegularizationMethod::NORMALIZED_ELLIPSE;
   search_source_.reset(new SearchMethodSource);
   search_target_.reset(new SearchMethodTarget);
 }
@@ -131,8 +139,25 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setSourceCovariances(
+	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
+	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales)
+	{
+		setCovariances(input_rotationsq, input_scales, source_covs_, source_rotationsq_, source_scales_);
+}
+
+
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
   target_covs_ = covs;
+}
+
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setTargetCovariances(
+	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
+	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales)
+	{
+		setCovariances(input_rotationsq, input_scales, target_covs_, target_rotationsq_, target_scales_);
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
@@ -305,7 +330,16 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 
     neighbors.colwise() -= neighbors.rowwise().mean().eval();
     Eigen::Matrix4d cov = neighbors * neighbors.transpose() / k_correspondences_;
+    
+    //compute raw scale and quaternions using cov
+    Eigen::JacobiSVD<Eigen::Matrix3d> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::Quaterniond qfrommat(svd.matrixU());
+    qfrommat.normalize();
+    Eigen::Vector4d q = {qfrommat.x(), qfrommat.y(), qfrommat.z(), qfrommat.w()};
+    rotationsq[i] = q;
+    scales[i] = svd.singularValues().cwiseSqrt();    
 
+    // compute regularized covariance
     if (regularization_method_ == RegularizationMethod::NONE) {
       covariances[i] = cov;
     } else if (regularization_method_ == RegularizationMethod::FROBENIUS) {
@@ -315,9 +349,8 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
       covariances[i].setZero();
       covariances[i].template block<3, 3>(0, 0) = (C_inv / C_inv.norm()).inverse();
     } else {
-      Eigen::JacobiSVD<Eigen::Matrix3d> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
+      // Eigen::JacobiSVD<Eigen::Matrix3d> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
       Eigen::Vector3d values;
-
       switch (regularization_method_) {
         default:
           std::cerr << "here must not be reached" << std::endl;
@@ -332,20 +365,85 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
           values = svd.singularValues() / svd.singularValues().maxCoeff();
           values = values.array().max(1e-3);
           break;
+        case RegularizationMethod::NORMALIZED_ELLIPSE:
+          // std::cout<<svd.singularValues()(1)<<std::endl;
+          if (svd.singularValues()(1) == 0){
+          	values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
+          }
+          else{          
+		  values = svd.singularValues() / svd.singularValues()(1);
+		  values = values.array().max(1e-3);
+	  }
       }
-
+      // use regularized covariance
       covariances[i].setZero();
       covariances[i].template block<3, 3>(0, 0) = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
     }
-    Eigen::JacobiSVD<Eigen::Matrix3d> svd(covariances[i].block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
-    Eigen::Quaterniond qfrommat(svd.matrixU());
-    qfrommat.normalize();
-    Eigen::Vector4d q = {qfrommat.x(), qfrommat.y(), qfrommat.z(), qfrommat.w()};
-    rotationsq[i] = q;
-    scales[i] = svd.singularValues().cwiseSqrt();
   }
 
   return true;
+}
+
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setCovariances(
+	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
+	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales,
+	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
+       std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& rotationsq,
+       std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& scales) 
+	{
+	if(input_rotationsq.size() != input_scales.size()){
+		std::cerr << "size not match" <<std::endl;
+		abort();
+	}
+	rotationsq.clear();
+	scales.clear();
+	rotationsq = input_rotationsq;
+	scales = input_scales;
+	covariances.resize(input_scales.size());
+	// rotationsq.resize(input_scales.size());
+	// scales.resize(input_scales.size());
+#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
+	for(int i=0; i<scales.size(); i++){
+		Eigen::Vector3d singular_values = input_scales[i].cwiseProduct(input_scales[i]);
+		switch (regularization_method_) {
+		default:
+		  std::cerr << "here must not be reached" << std::endl;
+		  abort();
+		case RegularizationMethod::PLANE:
+		  singular_values = Eigen::Vector3d(1, 1, 1e-3);
+		  break;
+		case RegularizationMethod::MIN_EIG:
+		  singular_values = singular_values.array().max(1e-3);
+		  break;
+		case RegularizationMethod::NORMALIZED_MIN_EIG:
+		  singular_values = singular_values / singular_values.maxCoeff();
+		  singular_values = singular_values.array().max(1e-3);
+		  break;
+		case RegularizationMethod::NORMALIZED_ELLIPSE:
+		  // std::cout<<svd.singularValues()(1)<<std::endl;
+		  if (singular_values(1) < 1e-3){
+		  	singular_values = Eigen::Vector3d(1e-3, 1e-3, 1e-3);
+		  }
+		  else{          
+			  singular_values = singular_values / singular_values(1);
+			  singular_values = singular_values.array().max(1e-3);
+		  }
+		  break;
+		case RegularizationMethod::NONE:
+		  // do nothing
+		  break;
+		case RegularizationMethod::FROBENIUS:
+		  std::cerr<< "should be implemented"<< std::endl;
+		  abort();
+	      }
+	      // scales[i] = singular_values.cwiseSqrt();
+	      // rotationsq[i] = input_rotationsq[i];
+	      Eigen::Quaterniond q(input_rotationsq[i](0), input_rotationsq[i](1), input_rotationsq[i](2), input_rotationsq[i](3));
+	      q = q.normalized();
+	      covariances[i].setZero();
+	      covariances[i].template block<3, 3>(0, 0) = q.toRotationMatrix() * singular_values.asDiagonal() * q.toRotationMatrix().transpose();
+	}
 }
 
 }  // namespace fast_gicp
