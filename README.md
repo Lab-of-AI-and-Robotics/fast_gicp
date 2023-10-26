@@ -44,4 +44,4 @@ scales = get_source_scales()
 target = get_source_target()
 
 ```
-
+<img width="80%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/tum_30_elipse.gif?raw=true"/>
