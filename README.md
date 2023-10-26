@@ -1,6 +1,5 @@
 
 * Ref: https://github.com/SMRT-AIST/fast_gicp
-* Modified by Hyeonwoo Yu, UNIST
 
 - I add some useful functions for both cpp & python
 - I modify gicp as it utilizes raw covariance by following normalized_ellipse mode (not plane mode), in order to meet the scales for multiple 3D pointclouds
