@@ -69,18 +69,30 @@ public:
 	const std::vector<float>& input_rotationsq,
 	const std::vector<float>& input_scales);
   
-  const std::vector<int>& getTargetCorrespondences() const { return correspondences_; }
-  const std::vector<float>& getTargetSqDistances() const {return sq_distances_;}
+  const std::vector<int>& getTargetCorrespondences() const { 
+  	if (target_->size() != correspondences_.size()){ std::cerr<< "target and correspondence size mismatch. Did you change target after align()?"<<std::endl;}
+  	return correspondences_; }
+  const std::vector<float>& getTargetSqDistances() const {
+  	if (target_->size() != sq_distances_.size()){ std::cerr<< "target and sq_distances size mismatch. Did you change target after align()?"<<std::endl;}
+  	return sq_distances_;}
 
   const int getSourceSize() const {return input_->size();}
   const int getTargetSize() const {return target_->size();}
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getSourceCovariances() const {return source_covs_;}
-  const std::vector<float>& getSourceRotationsq() const {return source_rotationsq_;}
-  const std::vector<float>& getSourceScales() const {return source_scales_;}
+  const std::vector<float>& getSourceRotationsq() const {
+  	if (input_->size() != source_rotationsq_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
+  	return source_rotationsq_;}
+  const std::vector<float>& getSourceScales() const {
+	if (input_->size() != source_scales_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
+  	return source_scales_;}
 
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getTargetCovariances() const {return target_covs_;}
-  const std::vector<float>& getTargetRotationsq() const {return target_rotationsq_;}
-  const std::vector<float>& getTargetScales() const {return target_scales_;}
+  const std::vector<float>& getTargetRotationsq() const {
+  	if (target_->size() != target_rotationsq_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
+  	return target_rotationsq_;}
+  const std::vector<float>& getTargetScales() const {
+  	if (target_->size() != target_scales_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
+  	return target_scales_;}
 
 protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;

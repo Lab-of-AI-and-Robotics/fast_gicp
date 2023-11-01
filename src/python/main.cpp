@@ -214,13 +214,13 @@ PYBIND11_MODULE(pygicp, m) {
     				py::array(gicp.getTargetSize(), gicp.getTargetSqDistances().data()));
     })
     .def("set_source_covariances_fromqs", [] (FastGICP& gicp, py::array rotationsq, py::array scales){
-    	if(py::len(rotationsq)/4!=py::len(scales)/3){ std::cerr<<"size not matched" <<std::endl; return;}
+    	if(py::len(rotationsq)/4!=py::len(scales)/3){ std::cerr<<"qs size not matched" <<std::endl; return;}
     	const auto input_rotationsq = rotationsq.cast<std::vector<float>>();
     	const auto input_scales = scales.cast<std::vector<float>>();
     	gicp.setSourceCovariances(input_rotationsq, input_scales);
     })
     .def("set_target_covariances_fromqs", [] (FastGICP& gicp, py::array rotationsq, py::array scales){
-    	if(py::len(rotationsq)/4!=py::len(scales)/3){ std::cerr<<"size not matched" <<std::endl; return;}
+    	if(py::len(rotationsq)/4!=py::len(scales)/3){ std::cerr<<"qs size not matched" <<std::endl; return;}
     	const auto input_rotationsq = rotationsq.cast<std::vector<float>>();
     	const auto input_scales = scales.cast<std::vector<float>>();
     	gicp.setTargetCovariances(input_rotationsq, input_scales);
