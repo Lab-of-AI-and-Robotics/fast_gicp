@@ -182,164 +182,50 @@ PYBIND11_MODULE(pygicp, m) {
       }, py::arg("initial_guess") = Eigen::Matrix4f::Identity()
     )
   ;
-
   py::class_<FastGICP, LsqRegistration, std::shared_ptr<FastGICP>>(m, "FastGICP")
     .def(py::init())
     .def("set_num_threads", &FastGICP::setNumThreads)
     .def("set_correspondence_randomness", &FastGICP::setCorrespondenceRandomness)
     .def("set_max_correspondence_distance", &FastGICP::setMaxCorrespondenceDistance)
-    .def("get_source_covariances", [] (FastGICP& gicp){
-      std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> source_covs = gicp.getSourceCovariances();
-      py::list data; for(const auto& c:source_covs) data.append(c); return data;})
-    .def("get_target_covariances", [] (FastGICP& gicp){
-      std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> target_covs = gicp.getTargetCovariances();
-      py::list data; for(const auto& c:target_covs) data.append(c); return data;})
     .def("get_source_rotationsq", [] (FastGICP& gicp){
-      std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> source_rotationsq = gicp.getSourceRotationsq();
-      py::list data; for(const auto& q:source_rotationsq) data.append(q); return data;})
+      return py::array(4*gicp.getSourceSize(), gicp.getSourceRotationsq().data());
+      // std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> source_rotationsq = gicp.getSourceRotationsq();
+      // py::list data; for(const auto& q:source_rotationsq) data.append(q); return data;
+      })
     .def("get_target_rotationsq", [] (FastGICP& gicp){
-      std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> target_rotationsq = gicp.getTargetRotationsq();
-      py::list data; for(const auto& q:target_rotationsq) data.append(q); return data;})
+      return py::array(4*gicp.getTargetSize(), gicp.getTargetRotationsq().data());
+      // std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> target_rotationsq = gicp.getTargetRotationsq();
+      // py::list data; for(const auto& q:target_rotationsq) data.append(q); return data;
+      })
     .def("get_source_scales", [] (FastGICP& gicp){
-      std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> source_scales = gicp.getSourceScales();
-      py::list data; for(const auto& s:source_scales) data.append(s); return data;})
+      return py::array(3*gicp.getSourceSize(), gicp.getSourceScales().data());
+      // std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> source_scales = gicp.getSourceScales();
+      // py::list data; for(const auto& s:source_scales) data.append(s); return data;
+      })
     .def("get_target_scales", [] (FastGICP& gicp){
-      std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> target_scales = gicp.getTargetScales();
-      py::list data; for(const auto& s:target_scales) data.append(s); return data;})
+      return py::array(3*gicp.getTargetSize(), gicp.getTargetScales().data());
+      // std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> target_scales = gicp.getTargetScales();
+      // py::list data; for(const auto& s:target_scales) data.append(s); return data;
+      })
     .def("calculate_source_covariance", &FastGICP::calculateSourceCovariance)
     .def("calculate_target_covariance", &FastGICP::calculateTargetCovariance)
     .def("get_target_correspondence", [] (FastGICP& gicp){
-    	py::list correspondences = py::cast(gicp.getTargetCorrespondences());
-    	py::list sq_distances = py::cast(gicp.getTargetSqDistances());
-    	return py::make_tuple(correspondences, sq_distances);
+    	return py::make_tuple(py::array(gicp.getTargetSize(), gicp.getTargetCorrespondences().data()), 
+    				py::array(gicp.getTargetSize(), gicp.getTargetSqDistances().data()));
     })
-    .def("set_source_covariances_fromqs", [] (FastGICP& gicp, py::list listOfSourceQ, py::list listOfScales){
-    	int size = py::len(listOfSourceQ);
+    .def("set_source_covariances_fromqs", [] (FastGICP& gicp, py::list listOfRotationsq, py::list listOfScales){
+    	int size = py::len(listOfRotationsq);
     	if(size!=py::len(listOfScales)){ std::cerr<<"size not matched" <<std::endl; return;}
-    	const auto input_rotationsq = listOfSourceQ.cast<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>>();
-    	const auto input_scales = listOfScales.cast<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>>();
+    	const auto input_rotationsq = listOfRotationsq.cast<std::vector<float>>();
+    	const auto input_scales = listOfScales.cast<std::vector<float>>();
     	gicp.setSourceCovariances(input_rotationsq, input_scales);
     })
-    .def("set_target_covariances_fromqs", [] (FastGICP& gicp, py::list listOfSourceQ, py::list listOfScales){
-    	int size = py::len(listOfSourceQ);
+    .def("set_target_covariances_fromqs", [] (FastGICP& gicp, py::list listOfRotationsq, py::list listOfScales){
+    	int size = py::len(listOfRotationsq);
     	if(size!=py::len(listOfScales)){ std::cerr<<"size not matched" <<std::endl; return;}
-    	const auto input_rotationsq = listOfSourceQ.cast<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>>();
-    	const auto input_scales = listOfScales.cast<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>>();
+    	const auto input_rotationsq = listOfRotationsq.cast<std::vector<float>>();
+    	const auto input_scales = listOfScales.cast<std::vector<float>>();
     	gicp.setTargetCovariances(input_rotationsq, input_scales);
-    })
-    .def("set_source_covariances_from6", [] (FastGICP& gicp, py::list listOfSourceCovariancesNumpy){
-      /** assume we have something like:
-      [ np.array(cov1[0][0], cov1[0][1], cov1[0][2], cov1[1][1], cov1[1][2], cov1[2][2]),
-       np.array(cov2[0][0], cov2[0][1], cov2[0][2], cov2[1][1], cov2[1][2], cov2[2][2]),
-       ...
-       ]
-       which has upper commonents of the covariance.
-      **/
-      // 2D numpy array to c++
-      // ref: https://www.appsloveworld.com/cplus/100/589/howto-pass-a-list-of-numpy-array-with-pybind?expand_article=1
-      std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> sourceCovariances;
-      for (py::handle covarianceNumpyArray: listOfSourceCovariancesNumpy){
-        Eigen::Matrix4d covMat = Eigen::Matrix4d::Zero();
-        py::array_t<double> covariance = py::cast<py::array>(covarianceNumpyArray);
-        auto requestedCovariance = covariance.request();
-        double* pblockedCovariance = (double*) requestedCovariance.ptr;
-        covMat(0,0) = pblockedCovariance[0];
-        covMat(0,1) = pblockedCovariance[1];
-        covMat(0,2) = pblockedCovariance[2];
-        covMat(1,0) = pblockedCovariance[1];
-        covMat(1,1) = pblockedCovariance[3];
-        covMat(1,2) = pblockedCovariance[4];
-        covMat(2,0) = pblockedCovariance[2];
-        covMat(2,1) = pblockedCovariance[4];
-        covMat(2,2) = pblockedCovariance[5];
-        sourceCovariances.push_back(covMat);
-      }
-      gicp.setSourceCovariances(sourceCovariances);
-    })
-    .def("set_target_covariances_from6", [] (FastGICP& gicp, py::list listOfTargetCovariancesNumpy){
-      /** assume we have something like:
-      [ np.array(cov1[0][0], cov1[0][1], cov1[0][2], cov1[1][1], cov1[1][2], cov1[2][2]),
-       np.array(cov2[0][0], cov2[0][1], cov2[0][2], cov2[1][1], cov2[1][2], cov2[2][2]),
-       ...
-       ]
-       which has upper commonents of the covariance.
-      **/
-      // 2D numpy array to c++
-      // ref: https://www.appsloveworld.com/cplus/100/589/howto-pass-a-list-of-numpy-array-with-pybind?expand_article=1
-      std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> targetCovariances;
-      for (py::handle covarianceNumpyArray: listOfTargetCovariancesNumpy){
-        Eigen::Matrix4d covMat = Eigen::Matrix4d::Zero();
-        py::array_t<double> covariance = py::cast<py::array>(covarianceNumpyArray);
-        auto requestedCovariance = covariance.request();
-        double* pblockedCovariance = (double*) requestedCovariance.ptr;
-        covMat(0,0) = pblockedCovariance[0];
-        covMat(0,1) = pblockedCovariance[1];
-        covMat(0,2) = pblockedCovariance[2];
-        covMat(1,0) = pblockedCovariance[1];
-        covMat(1,1) = pblockedCovariance[3];
-        covMat(1,2) = pblockedCovariance[4];
-        covMat(2,0) = pblockedCovariance[2];
-        covMat(2,1) = pblockedCovariance[4];
-        covMat(2,2) = pblockedCovariance[5];
-        targetCovariances.push_back(covMat);
-      }
-      gicp.setTargetCovariances(targetCovariances);
-    })
-    .def("set_source_covariances_from3x3", [] (FastGICP& gicp, py::list listOfSourceCovariancesNumpy){
-      /** assume we have something like:
-      [ np.array(cov1_mat3x3),
-       np.array(cov2_mat3x3),
-       ...
-       ]
-      **/
-      // 2D numpy array to c++
-      // ref: https://www.appsloveworld.com/cplus/100/589/howto-pass-a-list-of-numpy-array-with-pybind?expand_article=1
-      std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> sourceCovariances;
-      for (py::handle covarianceNumpyArray: listOfSourceCovariancesNumpy){
-        Eigen::Matrix4d covMat = Eigen::Matrix4d::Zero();
-        py::array_t<double> covariance = py::cast<py::array>(covarianceNumpyArray);
-        auto requestedCovariance = covariance.request();
-        double* pblockedCovariance = (double*) requestedCovariance.ptr;
-        covMat(0,0) = pblockedCovariance[3*0+0];
-        covMat(0,1) = pblockedCovariance[3*0+1];
-        covMat(0,2) = pblockedCovariance[3*0+2];
-        covMat(1,0) = pblockedCovariance[3*1+0];
-        covMat(1,1) = pblockedCovariance[3*1+1];
-        covMat(1,2) = pblockedCovariance[3*1+2];
-        covMat(2,0) = pblockedCovariance[3*2+0];
-        covMat(2,1) = pblockedCovariance[3*2+1];
-        covMat(2,2) = pblockedCovariance[3*2+2];
-        sourceCovariances.push_back(covMat);
-      }
-      gicp.setSourceCovariances(sourceCovariances);
-    })
-    .def("set_target_covariances_from3x3", [] (FastGICP& gicp, py::list listOftargetCovariancesNumpy){
-      /** assume we have something like:
-      [ np.array(cov1_mat3x3),
-       np.array(cov2_mat3x3),
-       ...
-       ]
-      **/
-      // 2D numpy array to c++
-      // ref: https://www.appsloveworld.com/cplus/100/589/howto-pass-a-list-of-numpy-array-with-pybind?expand_article=1
-      std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> targetCovariances;
-      for (py::handle covarianceNumpyArray: listOftargetCovariancesNumpy){
-        Eigen::Matrix4d covMat = Eigen::Matrix4d::Zero();
-        py::array_t<double> covariance = py::cast<py::array>(covarianceNumpyArray);
-        auto requestedCovariance = covariance.request();
-        double* pblockedCovariance = (double*) requestedCovariance.ptr;
-        covMat(0,0) = pblockedCovariance[3*0+0];
-        covMat(0,1) = pblockedCovariance[3*0+1];
-        covMat(0,2) = pblockedCovariance[3*0+2];
-        covMat(1,0) = pblockedCovariance[3*1+0];
-        covMat(1,1) = pblockedCovariance[3*1+1];
-        covMat(1,2) = pblockedCovariance[3*1+2];
-        covMat(2,0) = pblockedCovariance[3*2+0];
-        covMat(2,1) = pblockedCovariance[3*2+1];
-        covMat(2,2) = pblockedCovariance[3*2+2];
-        targetCovariances.push_back(covMat);
-      }
-      gicp.setTargetCovariances(targetCovariances);
     })
   ;
 

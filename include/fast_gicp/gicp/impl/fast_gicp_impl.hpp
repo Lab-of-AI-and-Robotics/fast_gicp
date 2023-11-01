@@ -140,8 +140,8 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setSourceCovariances(
-	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
-	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales)
+	const std::vector<float>& input_rotationsq,
+	const std::vector<float>& input_scales)
 	{
 		setCovariances(input_rotationsq, input_scales, source_covs_, source_rotationsq_, source_scales_);
 }
@@ -154,8 +154,8 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setTargetCovariances(
-	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
-	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales)
+	const std::vector<float>& input_rotationsq,
+	const std::vector<float>& input_scales)
 	{
 		setCovariances(input_rotationsq, input_scales, target_covs_, target_rotationsq_, target_scales_);
 }
@@ -307,15 +307,15 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   const typename pcl::PointCloud<PointT>::ConstPtr& cloud,
   pcl::search::Search<PointT>& kdtree,
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
-  std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& rotationsq,
-  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& scales
+  std::vector<float>& rotationsq,
+  std::vector<float>& scales
   ) {
   if (kdtree.getInputCloud() != cloud) {
     kdtree.setInputCloud(cloud);
   }
   covariances.resize(cloud->size());
-  rotationsq.resize(cloud->size());
-  scales.resize(cloud->size());
+  rotationsq.resize(4*cloud->size());
+  scales.resize(3*cloud->size());
 
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
   for (int i = 0; i < cloud->size(); i++) {
@@ -335,9 +335,17 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
     Eigen::JacobiSVD<Eigen::Matrix3d> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
     Eigen::Quaterniond qfrommat(svd.matrixU());
     qfrommat.normalize();
-    Eigen::Vector4d q = {qfrommat.x(), qfrommat.y(), qfrommat.z(), qfrommat.w()};
-    rotationsq[i] = q;
-    scales[i] = svd.singularValues().cwiseSqrt();    
+//    Eigen::Vector4d q = {qfrommat.x(), qfrommat.y(), qfrommat.z(), qfrommat.w()};
+    // rotationsq.insert(rotationsq.end(), { (float)qfrommat.x(), (float)qfrommat.y(), (float)qfrommat.z(), (float)qfrommat.w()});
+    rotationsq[4*i+0] = (float)qfrommat.x();
+    rotationsq[4*i+1] = (float)qfrommat.y();
+    rotationsq[4*i+2] = (float)qfrommat.z();
+    rotationsq[4*i+3] = (float)qfrommat.w();
+    Eigen::Vector3d scale = svd.singularValues().cwiseSqrt();
+    // scales.insert(scales.end(), {(float)scale.x(), (float)scale.y(), (float)scale.z()});
+    scales[3*i+0] = (float)scale.x();
+    scales[3*i+1] = (float)scale.y();
+    scales[3*i+2] = (float)scale.z();
 
     // compute regularized covariance
     if (regularization_method_ == RegularizationMethod::NONE) {
@@ -353,7 +361,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
       Eigen::Vector3d values;
       switch (regularization_method_) {
         default:
-          std::cerr << "here must not be reached" << std::endl;
+          std::cerr << "you need to set method (ex: RegularizationMethod::PLANE)" << std::endl;
           abort();
         case RegularizationMethod::PLANE:
           values = Eigen::Vector3d(1, 1, 1e-3);
@@ -386,13 +394,13 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setCovariances(
-	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
-	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales,
+	const std::vector<float>& input_rotationsq,
+	const std::vector<float>& input_scales,
 	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
-       std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& rotationsq,
-       std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& scales) 
+       std::vector<float>& rotationsq,
+       std::vector<float>& scales) 
 	{
-	if(input_rotationsq.size() != input_scales.size()){
+	if(input_rotationsq.size()/4 != input_scales.size()/3){
 		std::cerr << "size not match" <<std::endl;
 		abort();
 	}
@@ -405,7 +413,9 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 	// scales.resize(input_scales.size());
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
 	for(int i=0; i<scales.size(); i++){
-		Eigen::Vector3d singular_values = input_scales[i].cwiseProduct(input_scales[i]);
+		Eigen::Vector3d singular_values = { (double)scales[3*i+0]*scales[3*i+0], 
+							(double)scales[3*i+1]*scales[3*i+1], 
+							(double)scales[3*i+2]*scales[3*i+2] };
 		switch (regularization_method_) {
 		default:
 		  std::cerr << "here must not be reached" << std::endl;
@@ -439,7 +449,10 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 	      }
 	      // scales[i] = singular_values.cwiseSqrt();
 	      // rotationsq[i] = input_rotationsq[i];
-	      Eigen::Quaterniond q(input_rotationsq[i](0), input_rotationsq[i](1), input_rotationsq[i](2), input_rotationsq[i](3));
+	      Eigen::Quaterniond q( (double)rotationsq[4*i+0], 
+	      				(double)rotationsq[4*i+1], 
+	      				(double)rotationsq[4*i+2], 
+	      				(double)rotationsq[4*i+3]);
 	      q = q.normalized();
 	      covariances[i].setZero();
 	      covariances[i].template block<3, 3>(0, 0) = q.toRotationMatrix() * singular_values.asDiagonal() * q.toRotationMatrix().transpose();

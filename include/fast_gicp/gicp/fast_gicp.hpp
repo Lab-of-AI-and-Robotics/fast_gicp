@@ -60,25 +60,27 @@ public:
   void calculateSourceCovariance();
   virtual void setSourceCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs);
   virtual void setSourceCovariances(
-	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
-	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales);
+	const std::vector<float>& input_rotationsq,
+	const std::vector<float>& input_scales);
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
   void calculateTargetCovariance();
   virtual void setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs);
   virtual void setTargetCovariances(
-	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
-	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales);
+	const std::vector<float>& input_rotationsq,
+	const std::vector<float>& input_scales);
   
   const std::vector<int>& getTargetCorrespondences() const { return correspondences_; }
   const std::vector<float>& getTargetSqDistances() const {return sq_distances_;}
 
+  const int getSourceSize() const {return input_->size();}
+  const int getTargetSize() const {return target_->size();}
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getSourceCovariances() const {return source_covs_;}
-  const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& getSourceRotationsq() const {return source_rotationsq_;}
-  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& getSourceScales() const {return source_scales_;}
+  const std::vector<float>& getSourceRotationsq() const {return source_rotationsq_;}
+  const std::vector<float>& getSourceScales() const {return source_scales_;}
 
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getTargetCovariances() const {return target_covs_;}
-  const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& getTargetRotationsq() const {return target_rotationsq_;}
-  const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& getTargetScales() const {return target_scales_;}
+  const std::vector<float>& getTargetRotationsq() const {return target_rotationsq_;}
+  const std::vector<float>& getTargetScales() const {return target_scales_;}
 
 protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
@@ -94,15 +96,15 @@ protected:
   	const typename pcl::PointCloud<PointT>::ConstPtr& cloud,
   	pcl::search::Search<PointT>& kdtree,
 	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
-	std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& rotationsq,
-	std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& scales);
+	std::vector<float>& rotationsq,
+	std::vector<float>& scales);
   
   void setCovariances(
-	const std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& input_rotationsq,
-	const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& input_scales,
+	const std::vector<float>& input_rotationsq,
+	const std::vector<float>& input_scales,
 	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
-	std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>& rotationsq,
-	std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& scales);
+	std::vector<float>& rotationsq,
+	std::vector<float>& scales);
   
 protected:
   int num_threads_;
@@ -113,13 +115,17 @@ protected:
   std::shared_ptr<SearchMethodSource> search_source_;
   std::shared_ptr<SearchMethodTarget> search_target_;
 
-  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> source_covs_;  
-  std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> source_rotationsq_;
-  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> source_scales_;
+  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> source_covs_;
+//  std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> source_rotationsq_;
+//  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> source_scales_;
+  std::vector<float> source_rotationsq_;
+  std::vector<float> source_scales_;
     
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> target_covs_;
-  std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> target_rotationsq_;
-  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> target_scales_;
+//  std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> target_rotationsq_;
+//  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> target_scales_;
+  std::vector<float> target_rotationsq_;
+  std::vector<float> target_scales_;
 
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> mahalanobis_;
 
