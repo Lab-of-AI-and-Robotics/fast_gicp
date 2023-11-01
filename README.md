@@ -12,8 +12,9 @@
 
 Install for python
 ```shell
+cd catkin_workspace
 catkin_make -DCMAKE_BUILD_TYPE=Release
-cd fast_gicp
+cd src/fast_gicp
 python3 setup.py install --user
 ```
 
