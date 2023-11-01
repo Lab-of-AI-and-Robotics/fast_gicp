@@ -213,18 +213,16 @@ PYBIND11_MODULE(pygicp, m) {
     	return py::make_tuple(py::array(gicp.getTargetSize(), gicp.getTargetCorrespondences().data()), 
     				py::array(gicp.getTargetSize(), gicp.getTargetSqDistances().data()));
     })
-    .def("set_source_covariances_fromqs", [] (FastGICP& gicp, py::list listOfRotationsq, py::list listOfScales){
-    	int size = py::len(listOfRotationsq);
-    	if(size!=py::len(listOfScales)){ std::cerr<<"size not matched" <<std::endl; return;}
-    	const auto input_rotationsq = listOfRotationsq.cast<std::vector<float>>();
-    	const auto input_scales = listOfScales.cast<std::vector<float>>();
+    .def("set_source_covariances_fromqs", [] (FastGICP& gicp, py::array rotationsq, py::array scales){
+    	if(py::len(rotationsq)/4!=py::len(scales)/3){ std::cerr<<"size not matched" <<std::endl; return;}
+    	const auto input_rotationsq = rotationsq.cast<std::vector<float>>();
+    	const auto input_scales = scales.cast<std::vector<float>>();
     	gicp.setSourceCovariances(input_rotationsq, input_scales);
     })
-    .def("set_target_covariances_fromqs", [] (FastGICP& gicp, py::list listOfRotationsq, py::list listOfScales){
-    	int size = py::len(listOfRotationsq);
-    	if(size!=py::len(listOfScales)){ std::cerr<<"size not matched" <<std::endl; return;}
-    	const auto input_rotationsq = listOfRotationsq.cast<std::vector<float>>();
-    	const auto input_scales = listOfScales.cast<std::vector<float>>();
+    .def("set_target_covariances_fromqs", [] (FastGICP& gicp, py::array rotationsq, py::array scales){
+    	if(py::len(rotationsq)/4!=py::len(scales)/3){ std::cerr<<"size not matched" <<std::endl; return;}
+    	const auto input_rotationsq = rotationsq.cast<std::vector<float>>();
+    	const auto input_scales = scales.cast<std::vector<float>>();
     	gicp.setTargetCovariances(input_rotationsq, input_scales);
     })
   ;
