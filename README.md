@@ -10,6 +10,13 @@
 * q = (q_x, q_y, q_z, q_w)
 * R and SS can be obtained by SVD; R=U, scale**2 = singular_values.array()
 
+Install for python
+```shell
+catkin_make -DCMAKE_BUILD_TYPE=Release
+cd fast_gicp
+python3 setup.py install --user
+```
+
 python usage (see src/fast_gicp/python):
 
 ```python
