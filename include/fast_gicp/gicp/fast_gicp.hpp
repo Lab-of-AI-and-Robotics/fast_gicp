@@ -80,10 +80,10 @@ public:
   const int getTargetSize() const {return target_->size();}
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getSourceCovariances() const {return source_covs_;}
   const std::vector<float>& getSourceRotationsq() const {
-  	if (input_->size() != source_rotationsq_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
+  	if (input_->size() * 4 != source_rotationsq_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
   	return source_rotationsq_;}
   const std::vector<float>& getSourceScales() const {
-	if (input_->size() != source_scales_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
+	if (input_->size() * 3 != source_scales_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
   	return source_scales_;}
 
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getTargetCovariances() const {return target_covs_;}
