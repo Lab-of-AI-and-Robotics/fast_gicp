@@ -209,9 +209,9 @@ PYBIND11_MODULE(pygicp, m) {
       })
     .def("calculate_source_covariance", &FastGICP::calculateSourceCovariance)
     .def("calculate_target_covariance", &FastGICP::calculateTargetCovariance)
-    .def("get_target_correspondence", [] (FastGICP& gicp){
-    	return py::make_tuple(py::array(gicp.getTargetSize(), gicp.getTargetCorrespondences().data()), 
-    				py::array(gicp.getTargetSize(), gicp.getTargetSqDistances().data()));
+    .def("get_source_correspondence", [] (FastGICP& gicp){
+    	return py::make_tuple(py::array(gicp.getSourceSize(), gicp.getSourceCorrespondences().data()), 
+    				py::array(gicp.getSourceSize(), gicp.getSourceSqDistances().data()));
     })
     .def("set_source_covariances_fromqs", [] (FastGICP& gicp, py::array rotationsq, py::array scales){
     	if(py::len(rotationsq)/4!=py::len(scales)/3){ std::cerr<<"qs size not matched" <<std::endl; return;}

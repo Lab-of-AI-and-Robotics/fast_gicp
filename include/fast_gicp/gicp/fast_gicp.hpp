@@ -69,11 +69,11 @@ public:
 	const std::vector<float>& input_rotationsq,
 	const std::vector<float>& input_scales);
   
-  const std::vector<int>& getTargetCorrespondences() const { 
-  	if (target_->size() != correspondences_.size()){ std::cerr<< "target and correspondence size mismatch. Did you change target after align()?"<<std::endl;}
+  const std::vector<int>& getSourceCorrespondences() const { 
+  	if (input_->size() != correspondences_.size()){ std::cerr<< "source and correspondence size mismatch. Did you change src after align()?"<<std::endl;}
   	return correspondences_; }
-  const std::vector<float>& getTargetSqDistances() const {
-  	if (target_->size() != sq_distances_.size()){ std::cerr<< "target and sq_distances size mismatch. Did you change target after align()?"<<std::endl;}
+  const std::vector<float>& getSourceSqDistances() const {
+  	if (input_->size() != sq_distances_.size()){ std::cerr<< "source and sq_distances size mismatch. Did you change src after align()?"<<std::endl;}
   	return sq_distances_;}
 
   const int getSourceSize() const {return input_->size();}
@@ -88,10 +88,10 @@ public:
 
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getTargetCovariances() const {return target_covs_;}
   const std::vector<float>& getTargetRotationsq() const {
-  	if (target_->size() != target_rotationsq_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
+  	if (target_->size() * 4 != target_rotationsq_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
   	return target_rotationsq_;}
   const std::vector<float>& getTargetScales() const {
-  	if (target_->size() != target_scales_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
+  	if (target_->size() * 3 != target_scales_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
   	return target_scales_;}
 
 protected:
