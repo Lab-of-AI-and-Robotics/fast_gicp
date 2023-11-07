@@ -78,7 +78,7 @@ Test fast-gicp on replica room0, with random downsampling ratio 0.05. And visual
 python gicp_odometry2.py ./dataset/Replica/room0 replica 0.05 true
 ```
 <p align="center">
-  <img width="30%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/replica_0.05_traj.png"/>
+  <img width="35%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/replica_0.05_traj.png"/>
   <img width="40%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/replica_0.05_pointcloud.gif"/>
 </p>
 
