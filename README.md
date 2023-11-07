@@ -77,10 +77,14 @@ Test fast-gicp on replica room0, with random downsampling ratio 0.05. And visual
 ```bash
 python gicp_odometry2.py ./dataset/Replica/room0 replica 0.05 true
 ```
+<p align="center">
+  <img width="50%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/replica_0.05_traj.png"/>
+  <img width="50%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/replica_0.05_pointcloud.gif"/>
+  <figcaption align="center">Result</figcaption>
+</p>
 
-<img width="80%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/replica_0.05_traj.png"/>
 
-<img width="80%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/replica_0.05_pointcloud.gif"/>
+
 
 Test fast-gicp on TUM_fr3_office, without random downsampling and visualizing pointclouds.
 ```bash
@@ -92,6 +96,13 @@ Test fast-gicp on TUM_fr3_office, with random downsampling ratio 0.05, and visua
 python using_previous_30.py dataset/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household tum 0.05 true
 ```
 
-<img width="80%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/tum_30_elipse.png"/>
+<p align="center">
+  <img width="40%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/tum_30_elipse.png"/>
+  <img width="40%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/tum_30_elipse.gif"/>
+  <figcaption align="center">Result</figcaption>
+</p>
 
-<img width="80%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/tum_30_elipse.gif"/>
+
+
+
+
