@@ -52,11 +52,13 @@ nparray_of_scales_NX3 = np.reshape(nparray_of_scales, (-1,3))
 ```
 ## fast_gicp_tester
 - We provide simple test code on Replica/TUM dataset.
+```bash
+cd python_tester
+```
 
 ### Download dataset
 One need to download datasets for testing. To download Replica and TUM dataset, use bash files.
 ```bash
-cd python_tester
 # Replica
 bash download_replica.sh
 # TUM
@@ -83,7 +85,7 @@ python gicp_odometry2.py ./dataset/TUM_RGBD/rgbd_dataset_freiburg3_long_office_h
 
 Test fast-gicp on TUM_fr3_office, with random downsampling ratio 0.05, and visualizing pointclouds. 
 ```bash
-python python using_previous_30.py dataset/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household tum 0.05 true
+python using_previous_30.py dataset/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household tum 0.05 true
 ```
 
 #### results
