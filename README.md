@@ -49,7 +49,46 @@ nparray_of_quaternions_Nx4 = np.reshape(nparray_of_quaternions, (-1,4))
 nparray_of_scales_NX3 = np.reshape(nparray_of_scales, (-1,3))
 
 ```
+## fast_gicp_tester
+- We provide simple test code on Replica/TUM dataset.
 
-EX) python using_previous_30.py dataset/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household tum 0.05 true
+### Download dataset
+One need to download datasets for testing. To download Replica and TUM dataset, use bash files.
+```bash
+cd python_tester
+# Replica
+bash download_replica.sh
+# TUM
+bash download_tum.sh
+```
+
+### Usage
+
+```bash
+python gicp_odometry2.py [dataset_path] [tum or replica] [downsample_resolution] [visualize?]
+```
+
+### Example
+Test fast-gicp on replica room0, with random downsampling ratio 0.05. And visualize registered pointclouds.
+
+```bash
+python gicp_odometry2.py ./dataset/Replica/room0 replica 0.05 true
+```
+
+Test fast-gicp on TUM_fr3_office, without random downsampling and visualizing pointclouds.
+```bash
+python gicp_odometry2.py ./dataset/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household tum false false
+```
+
+Test fast-gicp on TUM_fr3_office, with random downsampling ratio 0.05, and visualizing pointclouds. 
+```bash
+python python using_previous_30.py dataset/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household tum 0.05 true
+```
+
+#### results
+```bash
+python using_previous_30.py dataset/TUM_RGBD/rgbd_dataset_freiburg3_long_office_household tum 0.05 true
+```
+
 <img width="80%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/tum_30_elipse.png"/>
 <img width="80%" src="https://github.com/Lab-of-AI-and-Robotics/fast_gicp/blob/main/data/tum_30_elipse.gif"/>
