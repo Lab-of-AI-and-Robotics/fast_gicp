@@ -5,7 +5,7 @@
 - Modify gicp as it utilizes raw covariance by following normalized_ellipse mode (not plane mode), in order to meet the scales for multiple 3D pointclouds
 => scale = scale / scale[1] .max(1e-3)
   
-* note that cov = R*S*(R*S)^T = R*SS*R^T, S = scale.asDiagonal().cwsqrt();
+* note that cov = R*S*(R*S)^T = R*SS*R^T,   S = scale.asDiagonal();
 * here, R = quaternion.toRotation();
 * q = (q_x, q_y, q_z, q_w)
 * R and SS can be obtained by SVD; R=U, scale**2 = singular_values.array()
