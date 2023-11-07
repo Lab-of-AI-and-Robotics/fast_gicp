@@ -31,20 +31,21 @@ gicp.set_input_source(source)
 # set covariance from quaternion and scale by following normalized_elipse
 nparray_of_quaternions = nparray_of_quaternions_Nx4.flatten()
 nparray_of_scales = nparray_of_scales_NX3.flatten()
-gicp.set_source_covariance_fromqs(nparray_of_quaternions, nparray_of_scales)
 gicp.set_target_covariance_fromqs(nparray_of_quaternions, nparray_of_scales) => 0.002180 sec
+gicp.set_source_covariance_fromqs(nparray_of_quaternions, nparray_of_scales)
 
 # compute covariance by following normalized_elipse
-calculate_source_covariance() # compute covariance from given input source pointcloud
 calculate_target_covariance() # compute covariance from given input target pointcloud
+calculate_source_covariance() # compute covariance from given input source pointcloud
 
-correspondences, sq_distances = gicp.get_target_correspondence()
-covariances = get_source_covariances()
+# after gicp.align()
+correspondences, sq_distances = gicp.get_source_correspondence()
 covariances = get_target_covariances()
-nparray_of_quaternions = get_source_rotationsq() => 0.00002277 sec
-nparray_of_quaternions = get_target_rotationsq() 
-nparray_of_scales = get_source_scales()          => 0.00002739 sec
-nparray_of_scales = get_target_scales()
+covariances = get_source_covariances()
+nparray_of_quaternions = get_target_rotationsq() => 0.00002277 sec
+nparray_of_quaternions = get_source_rotationsq() 
+nparray_of_scales = get_target_scales()          => 0.00002739 sec
+nparray_of_scales = get_source_scales()
 nparray_of_quaternions_Nx4 = np.reshape(nparray_of_quaternions, (-1,4))
 nparray_of_scales_NX3 = np.reshape(nparray_of_scales, (-1,3))
 
