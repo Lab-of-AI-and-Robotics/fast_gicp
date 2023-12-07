@@ -120,12 +120,13 @@ def main():
 			640, 480, 
 			535.4, 539.2, 320.1, 247.6)
 		depth_scale = 5000.0
-		depth_trunc = 3.0
+		depth_trunc = 6.0
 	
 	gt_traj_vis = np.array([x[:3, 3] for x in gt_poses])
 
-	reg = pygicp.FastGICP()
-	reg.set_max_correspondence_distance(0.05)
+	reg = pygicp.NDTCuda()
+	reg.set_resolution(0.05)
+	reg.set_neighbor_search_method("DIRECT7", 0.1)
 
 	stamps = []		# for FPS calculation
 	poses = [gt_poses[0]]	# camera trajectory
