@@ -103,7 +103,6 @@ struct accumulate_points_kernel {
         if (bucket.second < 0) {
           break;
         }
-
         int& num_points = thrust::raw_pointer_cast(num_points_ptr)[bucket.second];
         Eigen::Vector3f& voxel_mean = thrust::raw_pointer_cast(voxel_means_ptr)[bucket.second];
         Eigen::Matrix3f& voxel_cov = thrust::raw_pointer_cast(voxel_covs_ptr)[bucket.second];
@@ -117,6 +116,7 @@ struct accumulate_points_kernel {
         }
       }
     }
+    return;
   }
 
   __device__ void operator()(const Eigen::Vector3f& mean) const {
@@ -130,6 +130,9 @@ struct accumulate_points_kernel {
       const thrust::pair<Eigen::Vector3i, int>& bucket = thrust::raw_pointer_cast(buckets_ptr)[bucket_index];
 
       if (equal(bucket.first, coord)) {
+        if (bucket.second < 0) {
+          break;
+        }
         int& num_points = thrust::raw_pointer_cast(num_points_ptr)[bucket.second];
         Eigen::Vector3f& voxel_mean = thrust::raw_pointer_cast(voxel_means_ptr)[bucket.second];
         Eigen::Matrix3f& voxel_cov = thrust::raw_pointer_cast(voxel_covs_ptr)[bucket.second];
@@ -145,6 +148,7 @@ struct accumulate_points_kernel {
         }
       }
     }
+    return;
   }
 
   thrust::device_ptr<const VoxelMapInfo> voxelmap_info_ptr;

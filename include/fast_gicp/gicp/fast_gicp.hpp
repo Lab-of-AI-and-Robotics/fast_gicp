@@ -10,6 +10,7 @@
 #include <pcl/registration/registration.h>
 #include <fast_gicp/gicp/lsq_registration.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
+#include <ctime>
 
 namespace fast_gicp {
 

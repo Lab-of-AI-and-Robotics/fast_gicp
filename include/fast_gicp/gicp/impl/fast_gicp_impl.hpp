@@ -13,7 +13,7 @@ FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::Fast
   num_threads_ = 1;
 #endif
 
-  k_correspondences_ = 25;
+  k_correspondences_ = 25;  //25
   reg_name_ = "FastGICP";
   corr_dist_threshold_ = std::numeric_limits<float>::max();
   
@@ -93,7 +93,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   source_covs_.clear();
   source_rotationsq_.clear();
   source_scales_.clear();
-  std::cout<<"set input source end"<<std::endl;
+  // std::cout<<"set input source end"<<std::endl;
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
@@ -118,7 +118,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   target_covs_.clear();
   target_rotationsq_.clear();
   target_scales_.clear();
-  std::cout<<"set input target end"<<std::endl;
+  // std::cout<<"set input target end"<<std::endl;
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
@@ -396,9 +396,10 @@ template <typename PointSource, typename PointTarget, typename SearchMethodSourc
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setCovariances(
 	const std::vector<float>& input_rotationsq,
 	const std::vector<float>& input_scales,
-	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
-       std::vector<float>& rotationsq,
-       std::vector<float>& scales) 
+	std::vector<Eigen::Matrix4d, 
+  Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
+  std::vector<float>& rotationsq,
+  std::vector<float>& scales) 
 	{
 	if(input_rotationsq.size()/4 != input_scales.size()/3){
 		std::cerr << "size not match" <<std::endl;
@@ -411,8 +412,9 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 	covariances.resize(input_scales.size());
 	// rotationsq.resize(input_scales.size());
 	// scales.resize(input_scales.size());
+  clock_t start_time = clock();
 #pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
-	for(int i=0; i<scales.size(); i++){
+	for(int i=0; i<scales.size()/3; i++){
 		Eigen::Vector3d singular_values = { (double)scales[3*i+0]*scales[3*i+0], 
 							(double)scales[3*i+1]*scales[3*i+1], 
 							(double)scales[3*i+2]*scales[3*i+2] };
@@ -456,7 +458,9 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 	      q = q.normalized();
 	      covariances[i].setZero();
 	      covariances[i].template block<3, 3>(0, 0) = q.toRotationMatrix() * singular_values.asDiagonal() * q.toRotationMatrix().transpose();
-	}
+  }
+  clock_t end_time = clock();
+  printf("Regularization time : %lf\n", (double)(end_time - start_time)/CLOCKS_PER_SEC);
 }
 
 }  // namespace fast_gicp
