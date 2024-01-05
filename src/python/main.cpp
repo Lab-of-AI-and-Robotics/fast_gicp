@@ -188,27 +188,29 @@ PYBIND11_MODULE(pygicp, m) {
     .def("set_correspondence_randomness", &FastGICP::setCorrespondenceRandomness)
     .def("set_max_correspondence_distance", &FastGICP::setMaxCorrespondenceDistance)
     .def("get_source_rotationsq", [] (FastGICP& gicp){
-      return py::array(4*gicp.getSourceSize(), gicp.getSourceRotationsq().data());
+      return py::array(gicp.getSourceRotationsqSize(), gicp.getSourceRotationsq().data());
       // std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> source_rotationsq = gicp.getSourceRotationsq();
       // py::list data; for(const auto& q:source_rotationsq) data.append(q); return data;
       })
     .def("get_target_rotationsq", [] (FastGICP& gicp){
-      return py::array(4*gicp.getTargetSize(), gicp.getTargetRotationsq().data());
+      return py::array(gicp.getTargetRotationsqSize(), gicp.getTargetRotationsq().data());
       // std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> target_rotationsq = gicp.getTargetRotationsq();
       // py::list data; for(const auto& q:target_rotationsq) data.append(q); return data;
       })
     .def("get_source_scales", [] (FastGICP& gicp){
-      return py::array(3*gicp.getSourceSize(), gicp.getSourceScales().data());
+      return py::array(gicp.getSourceScaleSize(), gicp.getSourceScales().data());
       // std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> source_scales = gicp.getSourceScales();
       // py::list data; for(const auto& s:source_scales) data.append(s); return data;
       })
     .def("get_target_scales", [] (FastGICP& gicp){
-      return py::array(3*gicp.getTargetSize(), gicp.getTargetScales().data());
+      return py::array(gicp.getTargetScaleSize(), gicp.getTargetScales().data());
       // std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> target_scales = gicp.getTargetScales();
       // py::list data; for(const auto& s:target_scales) data.append(s); return data;
       })
     .def("calculate_source_covariance", &FastGICP::calculateSourceCovariance)
     .def("calculate_target_covariance", &FastGICP::calculateTargetCovariance)
+    .def("calculate_target_covariance_withz", &FastGICP::calculateTargetCovarianceWithZ)
+    .def("calculate_target_covariance_with_filter", &FastGICP::calculateTargetCovarianceWithFilter)
     .def("get_source_correspondence", [] (FastGICP& gicp){
     	return py::make_tuple(py::array(gicp.getSourceSize(), gicp.getSourceCorrespondences().data()), 
     				py::array(gicp.getSourceSize(), gicp.getSourceSqDistances().data()));
@@ -224,6 +226,22 @@ PYBIND11_MODULE(pygicp, m) {
     	const auto input_rotationsq = rotationsq.cast<std::vector<float>>();
     	const auto input_scales = scales.cast<std::vector<float>>();
     	gicp.setTargetCovariances(input_rotationsq, input_scales);
+    })
+    .def("set_source_z_values", [] (FastGICP& gicp, py::array z_values){
+      const auto input_z_values = z_values.cast<std::vector<float>>();
+    	gicp.setSourceZvalues(input_z_values);
+    })
+    .def("set_target_z_values", [] (FastGICP& gicp, py::array z_values){
+      const auto input_z_values = z_values.cast<std::vector<float>>();
+    	gicp.setTargetZvalues(input_z_values);
+    })
+    .def("set_source_filter", [] (FastGICP& gicp, py::int_ num_trackable, py::array filter){
+      const auto input_filter = filter.cast<std::vector<int>>();
+    	gicp.setSourceFilter(num_trackable, input_filter);
+    })
+    .def("set_target_filter", [] (FastGICP& gicp, py::int_ num_trackable, py::array filter){
+      const auto input_filter = filter.cast<std::vector<int>>();
+    	gicp.setTargetFilter(num_trackable, input_filter);
     })
   ;
 

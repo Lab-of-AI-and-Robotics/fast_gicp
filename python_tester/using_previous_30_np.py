@@ -7,6 +7,8 @@ from matplotlib import pyplot
 from scipy.spatial.transform import Rotation as R
 import open3d as o3d
 import cv2
+import torch
+import math
 
 def quaternion_rotation_matrix(Q, t):
 
@@ -70,6 +72,34 @@ def tum_load_poses(path):
 		times.append(line[0])
 	return np.array(poses), times
 
+
+def make_pointcloud_from_img(depth_img, rgb_img, 
+                             H, W, fx, fy, cx, cy, 
+                             depth_scale, depth_trunc):
+
+	FocalX = fx
+	FocalY = fy
+	CenterX = cx
+	CenterY = cy
+
+	depth_img = np.array(depth_img, dtype=np.float32) / depth_scale
+	
+	u_list = np.tile(np.arange(W), H).reshape(H, W)
+	v_list = np.tile(np.arange(H), W).reshape(W, H).transpose()
+	x = (u_list - CenterX) * depth_img / FocalX
+	y = (v_list - CenterY) * depth_img / FocalY
+	points = np.stack([x,y,depth_img], axis=-1).reshape([-1,3])
+	depth_img_flatten = depth_img.flatten()
+	filter = np.where((depth_img_flatten!=0)&(depth_img_flatten<=depth_trunc))
+	points = points[filter]
+ 
+	if rgb_img != None:
+		colors = np.array(rgb_img).reshape([-1,3])
+		colors = colors[filter]
+		return points, colors
+	else:
+		return points
+
 def main():
 	if len(sys.argv) < 5:
 		print('usage: gicp_odometry2.py [dataset_path] [tum or replica] [downsample_resolution] [visualize?]')
@@ -103,55 +133,87 @@ def main():
 		vis.create_window()
 
 	pointclouds_stack = []
-	intrinsics = o3d.camera.PinholeCameraIntrinsic()
+	# intrinsics = o3d.camera.PinholeCameraIntrinsic()
  
 	if mode == "replica":
 		filenames = sorted([seq_path + '/results/' + x for x in os.listdir(seq_path+'/results/') if x.endswith('.png')])
 		gt_poses = replica_load_poses(seq_path + '/traj.txt')
-		intrinsics.set_intrinsics(
-			1200, 680, 
-			600.0, 600.0, 599.5, 339.5)
+		# intrinsics.set_intrinsics(
+		# 	1200, 680, 
+		# 	600.0, 600.0, 599.5, 339.5)
+		W = 1200
+		H = 680
+		fx = 600.0
+		fy = 600.0
+		cx = 599.5
+		cy = 339.5
 		depth_scale = 6553.5
 		depth_trunc = 12.0
 	else:
 		filenames = sorted([seq_path + '/depth/' + x for x in os.listdir(seq_path+'/depth/') if x.endswith('.png')])
 		gt_poses, gt_timestamps = tum_load_poses(seq_path + '/groundtruth.txt')
-		intrinsics.set_intrinsics(
-			640, 480, 
-			535.4, 539.2, 320.1, 247.6)
+		# intrinsics.set_intrinsics(
+		# 	640, 480, 
+		# 	535.4, 539.2, 320.1, 247.6)
+		W = 640
+		H = 480
+		fx = 535.4
+		fy = 539.2
+		cx = 320.1
+		cy = 247.6
 		depth_scale = 5000.0
 		depth_trunc = 3.0
 	
 	gt_traj_vis = np.array([x[:3, 3] for x in gt_poses])
 
-	reg = pygicp.NDTCuda()
-	reg.set_resolution(0.05)
-	reg.set_neighbor_search_method("DIRECT7", 0.05)
+	reg = pygicp.FastGICP()
+	reg.set_max_correspondence_distance(0.05)
 
 	stamps = []		# for FPS calculation
 	poses = [gt_poses[0]]	# camera trajectory
-
+ 
+	total_start_time = time.time()
 	for i, filename in enumerate(filenames):
-
+		start = time.time()
+		debug = 0
+		a = time.time()
+		
 		# Read depth image
 		depth_image = np.array(o3d.io.read_image(filename))
 		# fps
-		start = time.time()
+		
+
+		print(f"debug{debug} : {time.time()-a}")
+		debug += 1
+		a = time.time()
   
-		points_ = o3d.geometry.PointCloud.create_from_depth_image(
-			depth=o3d.geometry.Image(depth_image),
-			intrinsic = intrinsics,
-			depth_scale = depth_scale,
-			depth_trunc = depth_trunc
-		)
-		points = np.asarray(points_.points)
-		print(f'before : {points.shape}')
+		# points_ = o3d.geometry.PointCloud.create_from_depth_image(
+		# 	depth=o3d.geometry.Image(depth_image),
+		# 	intrinsic = intrinsics,
+		# 	depth_scale = depth_scale,
+		# 	depth_trunc = depth_trunc
+		# )
+		# points = np.asarray(points_.points)
+
+		points = make_pointcloud_from_img(	depth_image, None, 
+											H, W, fx, fy, cx, cy, 
+											depth_scale, depth_trunc)
+  
+		# print(f'before : {points.shape}')
+
+		print(f"debug{debug} : {time.time()-a}")
+		debug += 1
+		a = time.time()
 
 		if downsample_resolution != None:
 			# points = pygicp.downsample(points, downsample_resolution)
 			selected_indices = np.random.choice(len(points), size=(int)(len(points)*downsample_resolution), replace=False)
 			points = points[selected_indices]
 		
+		print(f"debug{debug} : {time.time()-a}")
+		debug += 1
+		a = time.time()
+  
 		print(f'after : {points.shape}')
 
 
@@ -179,8 +241,8 @@ def main():
 
 			if i % 30 == 1:
 				pointclouds_stack.append(points_registered)
-				if len(pointclouds_stack) > 30:
-					pointclouds_stack.pop()
+				# if len(pointclouds_stack) > 30:
+				# 	pointclouds_stack.pop()
 				map_points = pointclouds_stack[0]
 				if len(pointclouds_stack) > 1:
 					for idx in range(len(pointclouds_stack)-1):
@@ -203,20 +265,20 @@ def main():
 		print('fps:%.3f' % fps)
 
 		# visualize
-		if visualize and i%5==1:
-			# points_
-			# points_.transform(poses[-1].dot(delta))
-			# vis.add_geometry(points_)
-			# vis.update_geometry(points_)
-			# test
-			pcd = o3d.geometry.PointCloud()
-			pcd.points = o3d.utility.Vector3dVector(points_registered)
-			# pcd.transform(poses[-1].dot(delta))
-			vis.add_geometry(pcd)
-			vis.update_geometry(pcd)
+		# if visualize and i%5==1:
+		# 	# points_
+		# 	# points_.transform(poses[-1].dot(delta))
+		# 	# vis.add_geometry(points_)
+		# 	# vis.update_geometry(points_)
+		# 	# test
+		# 	pcd = o3d.geometry.PointCloud()
+		# 	pcd.points = o3d.utility.Vector3dVector(points_registered)
+		# 	# pcd.transform(poses[-1].dot(delta))
+		# 	vis.add_geometry(pcd)
+		# 	vis.update_geometry(pcd)
    
-			vis.poll_events()
-			vis.update_renderer()
+		# 	vis.poll_events()
+		# 	vis.update_renderer()
   
 		# FPS calculation for the last ten frames
 		
@@ -231,8 +293,8 @@ def main():
 			pyplot.plot(gt_traj_vis[:, 0], gt_traj_vis[:, 1], label='ground truth trajectory')
 			pyplot.legend()
 			pyplot.axis('equal')
-			pyplot.pause(0.01)
-			
+			pyplot.pause(1e-15)
+	print(f"total fps : {1/((time.time() - total_start_time)/len(filenames))}")	
 	pyplot.show()
 	if visualize:
 		vis.run()

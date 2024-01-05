@@ -65,11 +65,18 @@ public:
 	const std::vector<float>& input_scales);
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
   void calculateTargetCovariance();
+  void calculateTargetCovarianceWithZ();
+  void calculateTargetCovarianceWithFilter();
   virtual void setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs);
   virtual void setTargetCovariances(
 	const std::vector<float>& input_rotationsq,
 	const std::vector<float>& input_scales);
   
+  virtual void setSourceZvalues(const std::vector<float>& input_z_values);
+  virtual void setTargetZvalues(const std::vector<float>& input_z_values);
+  virtual void setSourceFilter(const int num_trackable_points, const std::vector<int>& input_filter);
+  virtual void setTargetFilter(const int num_trackable_points, const std::vector<int>& input_filter);
+
   const std::vector<int>& getSourceCorrespondences() const { 
   	if (input_->size() != correspondences_.size()){ std::cerr<< "source and correspondence size mismatch. Did you change src after align()?"<<std::endl;}
   	return correspondences_; }
@@ -78,22 +85,27 @@ public:
   	return sq_distances_;}
 
   const int getSourceSize() const {return input_->size();}
+  const int getSourceRotationsqSize() const {return source_rotationsq_.size();}
+  const int getSourceScaleSize() const {return source_scales_.size();}
   const int getTargetSize() const {return target_->size();}
+  const int getTargetRotationsqSize() const {return target_rotationsq_.size();}
+  const int getTargetScaleSize() const {return target_scales_.size();}
+
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getSourceCovariances() const {return source_covs_;}
   const std::vector<float>& getSourceRotationsq() const {
-  	if (input_->size() * 4 != source_rotationsq_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
+  	// if (input_->size() * 4 != source_rotationsq_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
   	return source_rotationsq_;}
   const std::vector<float>& getSourceScales() const {
-	if (input_->size() * 3 != source_scales_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
+	// if (input_->size() * 3 != source_scales_.size()){ std::cerr << "source and quaternions size mismatch. Did you change source?"<<std::endl;}
   	return source_scales_;}
 
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getTargetCovariances() const {return target_covs_;}
   const std::vector<float>& getTargetRotationsq() const {
-  	if (target_->size() * 4 != target_rotationsq_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
-  	return target_rotationsq_;}
+  	// if (target_->size() * 4 != target_rotationsq_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
+    return target_rotationsq_;}
   const std::vector<float>& getTargetScales() const {
-  	if (target_->size() * 3 != target_scales_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
-  	return target_scales_;}
+  	// if (target_->size() * 3 != target_scales_.size()){ std::cerr << "target and quaternions size mismatch. Did you change target?"<<std::endl;}
+    return target_scales_;}
 
 protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
@@ -111,6 +123,33 @@ protected:
 	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
 	std::vector<float>& rotationsq,
 	std::vector<float>& scales);
+
+  template<typename PointT>
+  bool calculate_covariances_withz(
+  	const typename pcl::PointCloud<PointT>::ConstPtr& cloud,
+  	pcl::search::Search<PointT>& kdtree,
+	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
+	std::vector<float>& rotationsq,
+	std::vector<float>& scales,
+  std::vector<float>& z_values);
+
+  template<typename PointT>
+  bool calculate_source_covariances_with_filter(
+  	const typename pcl::PointCloud<PointT>::ConstPtr& cloud,
+  	pcl::search::Search<PointT>& kdtree,
+	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
+	std::vector<float>& rotationsq,
+	std::vector<float>& scales,
+  std::vector<int>& filter);
+
+  template<typename PointT>
+  bool calculate_target_covariances_with_filter(
+  	const typename pcl::PointCloud<PointT>::ConstPtr& cloud,
+  	pcl::search::Search<PointT>& kdtree,
+	std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
+	std::vector<float>& rotationsq,
+	std::vector<float>& scales,
+  std::vector<int>& filter);
   
   void setCovariances(
 	const std::vector<float>& input_rotationsq,
@@ -133,12 +172,18 @@ protected:
 //  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> source_scales_;
   std::vector<float> source_rotationsq_;
   std::vector<float> source_scales_;
+  std::vector<float> source_z_values_;
+  std::vector<int> source_filter_;
+  int source_num_trackable_points_;
     
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> target_covs_;
 //  std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> target_rotationsq_;
 //  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> target_scales_;
   std::vector<float> target_rotationsq_;
   std::vector<float> target_scales_;
+  std::vector<float> target_z_values_;
+  std::vector<int> target_filter_;
+  int target_num_trackable_points_;
 
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> mahalanobis_;
 

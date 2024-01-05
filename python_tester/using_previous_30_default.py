@@ -7,6 +7,8 @@ from matplotlib import pyplot
 from scipy.spatial.transform import Rotation as R
 import open3d as o3d
 import cv2
+import torch
+import math
 
 def quaternion_rotation_matrix(Q, t):
 
@@ -70,6 +72,8 @@ def tum_load_poses(path):
 		times.append(line[0])
 	return np.array(poses), times
 
+
+
 def main():
 	if len(sys.argv) < 5:
 		print('usage: gicp_odometry2.py [dataset_path] [tum or replica] [downsample_resolution] [visualize?]')
@@ -119,6 +123,7 @@ def main():
 		intrinsics.set_intrinsics(
 			640, 480, 
 			535.4, 539.2, 320.1, 247.6)
+
 		depth_scale = 5000.0
 		depth_trunc = 3.0
 	
@@ -129,13 +134,21 @@ def main():
 
 	stamps = []		# for FPS calculation
 	poses = [gt_poses[0]]	# camera trajectory
-
+ 
+	total_start_time = time.time()
 	for i, filename in enumerate(filenames):
-
+		start = time.time()
+		debug = 0
+		a = time.time()
+		
 		# Read depth image
 		depth_image = np.array(o3d.io.read_image(filename))
 		# fps
-		start = time.time()
+		
+
+		print(f"debug{debug} : {time.time()-a}")
+		debug += 1
+		a = time.time()
   
 		points_ = o3d.geometry.PointCloud.create_from_depth_image(
 			depth=o3d.geometry.Image(depth_image),
@@ -144,13 +157,22 @@ def main():
 			depth_trunc = depth_trunc
 		)
 		points = np.asarray(points_.points)
-		print(f'before : {points.shape}')
+
+		# print(f'before : {points.shape}')
+
+		print(f"debug{debug} : {time.time()-a}")
+		debug += 1
+		a = time.time()
 
 		if downsample_resolution != None:
 			# points = pygicp.downsample(points, downsample_resolution)
 			selected_indices = np.random.choice(len(points), size=(int)(len(points)*downsample_resolution), replace=False)
 			points = points[selected_indices]
 		
+		print(f"debug{debug} : {time.time()-a}")
+		debug += 1
+		a = time.time()
+  
 		print(f'after : {points.shape}')
 
 
@@ -178,8 +200,8 @@ def main():
 
 			if i % 30 == 1:
 				pointclouds_stack.append(points_registered)
-				if len(pointclouds_stack) > 30:
-					pointclouds_stack.pop()
+				# if len(pointclouds_stack) > 30:
+				# 	pointclouds_stack.pop()
 				map_points = pointclouds_stack[0]
 				if len(pointclouds_stack) > 1:
 					for idx in range(len(pointclouds_stack)-1):
@@ -230,8 +252,8 @@ def main():
 			pyplot.plot(gt_traj_vis[:, 0], gt_traj_vis[:, 1], label='ground truth trajectory')
 			pyplot.legend()
 			pyplot.axis('equal')
-			pyplot.pause(0.01)
-			
+			pyplot.pause(1e-15)
+	print(f"total fps : {1/((time.time() - total_start_time)/len(filenames))}")
 	pyplot.show()
 	if visualize:
 		vis.run()
