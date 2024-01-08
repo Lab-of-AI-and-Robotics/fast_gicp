@@ -91,9 +91,7 @@ Eigen::Matrix4d align_points(
     voxelgrid.filter(*filtered);
     source_cloud.swap(filtered);
   }
-
   std::shared_ptr<fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>> reg;
-
   if(method == "GICP") {
     std::shared_ptr<fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>> gicp(new fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>);
     gicp->setMaxCorrespondenceDistance(max_correspondence_distance);
@@ -132,15 +130,13 @@ Eigen::Matrix4d align_points(
     std::cerr << "error: unknown registration method " << method << std::endl;
     return Eigen::Matrix4d::Identity();
   }
-
   reg->setInputTarget(target_cloud);
   reg->setInputSource(source_cloud);
-
   pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
   reg->align(*aligned, initial_guess);
-
   return reg->getFinalTransformation().cast<double>();
 }
+
 
 using LsqRegistration = fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>;
 using FastGICP = fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>;
@@ -184,6 +180,25 @@ PYBIND11_MODULE(pygicp, m) {
   ;
   py::class_<FastGICP, LsqRegistration, std::shared_ptr<FastGICP>>(m, "FastGICP")
     .def(py::init())
+    .def(py::pickle(
+        [](const FastGICP &p) { // __getstate__
+            /* Return a tuple that fully encodes the state of the object */
+            return py::make_tuple(p.getSourceRotationsq());
+        },
+        [](py::tuple t) { // __setstate__
+            if (t.size() != 1)
+                throw std::runtime_error("Invalid state!");
+
+            /* Create a new C++ instance */
+            // FastGICP p(t[0].cast<std::string>());
+            FastGICP p;
+
+            /* Assign any additional state */
+            // p.setExtra(t[1].cast<int>());
+
+            return p;
+        }
+    ))
     .def("set_num_threads", &FastGICP::setNumThreads)
     .def("set_correspondence_randomness", &FastGICP::setCorrespondenceRandomness)
     .def("set_max_correspondence_distance", &FastGICP::setMaxCorrespondenceDistance)

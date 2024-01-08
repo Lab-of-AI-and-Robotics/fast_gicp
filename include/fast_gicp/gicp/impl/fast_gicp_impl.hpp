@@ -225,7 +225,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
     calculate_source_covariances_with_filter(input_, *search_source_, source_covs_, source_rotationsq_, source_scales_, source_filter_);
   }
   if (target_covs_.size() != target_->size()) {
-//    std::cout<<"compute target cov"<<std::endl;
+  //  std::cout<<"compute target cov"<<std::endl;
     calculate_covariances(target_, *search_target_, target_covs_, target_rotationsq_, target_scales_);
   }
 
@@ -755,9 +755,9 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
     }
   }
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(newCloud);
+  search_target_->setInputCloud(newCloud);
   // std::cout << "Cloud size : " << newCloud->size() << "/cov size : " << covariances.size() << "/rots size : " << rotationsq.size()/4 << std::endl;
   // std::cout << "Checker : " << checker << std::endl;
-  search_target_->setInputCloud(newCloud);
   return true;
 }
 
@@ -778,7 +778,8 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 	scales.clear();
 	rotationsq = input_rotationsq;
 	scales = input_scales;
-	covariances.resize(input_scales.size());
+  // covariances.resize(input_scales.size());
+	covariances.resize(input_scales.size()/3);
 	// rotationsq.resize(input_scales.size());
 	// scales.resize(input_scales.size());
   // clock_t start_time = clock();
@@ -829,6 +830,8 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 	      covariances[i].setZero();
 	      covariances[i].template block<3, 3>(0, 0) = q.toRotationMatrix() * singular_values.asDiagonal() * q.toRotationMatrix().transpose();
   }
+  // std::cout << "Cloud size : " << target_->size() << "/cov size : " << covariances.size() << "/rots size : " << rotationsq.size()/4 << std::endl;
+
   // clock_t end_time = clock();
   // printf("Regularization time : %lf\n", (double)(end_time - start_time)/CLOCKS_PER_SEC);
 }
