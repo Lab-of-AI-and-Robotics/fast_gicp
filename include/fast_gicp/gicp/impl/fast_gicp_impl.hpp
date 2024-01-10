@@ -669,7 +669,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
               values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
             }
             else{          
-              values = svd.singularValues() / svd.singularValues()(1) * 1e-2;
+              values = svd.singularValues() / svd.singularValues()(1) * 1e-1;
               // values = values.array().max(1e-3);
             }
             break;
@@ -787,7 +787,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
               values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
             }
             else{          
-              values = svd.singularValues() / svd.singularValues()(1) * 1e-2;
+              values = svd.singularValues() / svd.singularValues()(1) * 1e-1;
               // values = values.array().max(1e-3);
             }
             break;
@@ -855,7 +855,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 		  	singular_values = Eigen::Vector3d(1e-3, 1e-3, 1e-3);
 		  }
 		  else{          
-			  singular_values = singular_values / singular_values(1) * 1e-2;
+			  singular_values = singular_values / singular_values(1) * 1e-1;
 			  // singular_values = singular_values.array().max(1e-3);
 		  }
 		  break;
