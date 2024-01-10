@@ -52,6 +52,7 @@ public:
   void setNumThreads(int n);
   void setCorrespondenceRandomness(int k);
   void setRegularizationMethod(RegularizationMethod method);
+  void setKNNMaxDistance(float k);
 
   virtual void swapSourceAndTarget() override;
   virtual void clearSource() override;
@@ -151,6 +152,9 @@ protected:
 	std::vector<float>& scales,
   std::vector<int>& filter);
   
+
+
+  
   void setCovariances(
 	const std::vector<float>& input_rotationsq,
 	const std::vector<float>& input_scales,
@@ -161,6 +165,7 @@ protected:
 protected:
   int num_threads_;
   int k_correspondences_;
+  float knn_max_distance_;
 
   RegularizationMethod regularization_method_;
 

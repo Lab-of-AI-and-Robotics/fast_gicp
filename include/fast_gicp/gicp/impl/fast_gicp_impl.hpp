@@ -16,6 +16,7 @@ FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::Fast
   k_correspondences_ = 10;  //25
   reg_name_ = "FastGICP";
   corr_dist_threshold_ = std::numeric_limits<float>::max();
+  knn_max_distance_ = 0.5;
   
   source_covs_.clear();  
   source_rotationsq_.clear();
@@ -38,11 +39,17 @@ template <typename PointSource, typename PointTarget, typename SearchMethodSourc
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setNumThreads(int n) {
   num_threads_ = n;
 
+
 #ifdef _OPENMP
   if (n == 0) {
     num_threads_ = omp_get_max_threads();
   }
 #endif
+}
+
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setKNNMaxDistance(float k) {
+  knn_max_distance_ = k;
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
@@ -222,6 +229,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   if (source_covs_.size() != input_->size()) {
 //    std::cout<<"compute source cov"<<std::endl;
     // calculate_covariances(input_, *search_source_, source_covs_, source_rotationsq_, source_scales_);
+    // calculate_covariances_withz(input_, *search_source_, source_covs_, source_rotationsq_, source_scales_, source_z_values_);
     calculate_source_covariances_with_filter(input_, *search_source_, source_covs_, source_rotationsq_, source_scales_, source_filter_);
   }
   if (target_covs_.size() != target_->size()) {
@@ -376,11 +384,21 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   for (int i = 0; i < cloud->size(); i++) {
     std::vector<int> k_indices;
     std::vector<float> k_sq_distances;
+    int num_reliable_neighbors = 0;
     kdtree.nearestKSearch(cloud->at(i), k_correspondences_, k_indices, k_sq_distances);
 
-    Eigen::Matrix<double, 4, -1> neighbors(4, k_correspondences_);
+    // Get number of reliable neighbors
     for (int j = 0; j < k_indices.size(); j++) {
-      neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
+      if (k_sq_distances[j] < knn_max_distance_){
+        ++num_reliable_neighbors;
+      }
+    }
+
+    Eigen::Matrix<double, 4, -1> neighbors(4, num_reliable_neighbors);
+    for (int j = 0; j < k_indices.size(); j++) {
+      if (k_sq_distances[j] < knn_max_distance_){
+        neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
+      }
     }
 
     neighbors.colwise() -= neighbors.rowwise().mean().eval();
@@ -468,11 +486,21 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   for (int i = 0; i < cloud->size(); i++) {
     std::vector<int> k_indices;
     std::vector<float> k_sq_distances;
+    int num_reliable_neighbors = 0;
     kdtree.nearestKSearch(cloud->at(i), k_correspondences_, k_indices, k_sq_distances);
 
-    Eigen::Matrix<double, 4, -1> neighbors(4, k_correspondences_);
+    // Get number of reliable neighbors
     for (int j = 0; j < k_indices.size(); j++) {
-      neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
+      if (k_sq_distances[j] < knn_max_distance_){
+        ++num_reliable_neighbors;
+      }
+    }
+
+    Eigen::Matrix<double, 4, -1> neighbors(4, num_reliable_neighbors);
+    for (int j = 0; j < k_indices.size(); j++) {
+      if (k_sq_distances[j] < knn_max_distance_){
+        neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
+      }
     }
 
     neighbors.colwise() -= neighbors.rowwise().mean().eval();
@@ -524,22 +552,15 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
           break;
         case RegularizationMethod::NORMALIZED_ELLIPSE:
           // std::cout<<svd.singularValues()(1)<<std::endl;
-          // if (svd.singularValues()(1) == 0){
-          // 	values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
-          // }
-          // else{          
-          //   values = svd.singularValues() / svd.singularValues()(1);
-          //   values = values.array().max(1e-3);
-	        // }
           if (svd.singularValues()(1) == 0){
           	values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
           }
           else{          
-            values(0) = scales[3*i+0] * scales[3*i+0];
-            values(1) = scales[3*i+1] * scales[3*i+1];
-            values(2) = scales[3*i+2] * scales[3*i+2];
-            // values = values.array().max(1e-3);
+            values = svd.singularValues() / svd.singularValues()(1);
+            values = values.array().max(1e-3);
 	        }
+          break;
+
       }
       // use regularized covariance
       covariances[i].setZero();
@@ -578,13 +599,23 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   for (int i = 0; i < cloud->size(); i++) {
     std::vector<int> k_indices;
     std::vector<float> k_sq_distances;
+    int num_reliable_neighbors = 0;
     kdtree.nearestKSearch(cloud->at(i), k_correspondences_, k_indices, k_sq_distances);
-
-    Eigen::Matrix<double, 4, -1> neighbors(4, k_correspondences_);
+    
+    // Get number of reliable neighbors
     for (int j = 0; j < k_indices.size(); j++) {
-      neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
+      if (k_sq_distances[j] < knn_max_distance_){
+        ++num_reliable_neighbors;
+      }
     }
 
+    Eigen::Matrix<double, 4, -1> neighbors(4, num_reliable_neighbors);
+    for (int j = 0; j < k_indices.size(); j++) {
+      if (k_sq_distances[j] < knn_max_distance_){
+        neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
+      }
+    }
+    
     neighbors.colwise() -= neighbors.rowwise().mean().eval();
     Eigen::Matrix4d cov = neighbors * neighbors.transpose() / k_correspondences_;
     
@@ -623,7 +654,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
             std::cerr << "you need to set method (ex: RegularizationMethod::PLANE)" << std::endl;
             abort();
           case RegularizationMethod::PLANE:
-            values = Eigen::Vector3d(1, 1, 1e-3);
+            values = Eigen::Vector3d(1e-3, 1e-3, 1e-5); //1,1,1e-3
             break;
           case RegularizationMethod::MIN_EIG:
             values = svd.singularValues().array().max(1e-3);
@@ -638,9 +669,12 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
               values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
             }
             else{          
-              values = svd.singularValues() / svd.singularValues()(1);
-              values = values.array().max(1e-3);
+              values = svd.singularValues() / svd.singularValues()(1) * 1e-2;
+              // values = values.array().max(1e-3);
             }
+            break;
+          case RegularizationMethod::TEST:
+            values = Eigen::Vector3d(1e-2, 1e-2, 1e-5); //1,1,1e-3
         }
         // use regularized covariance
         covariances[filter[i]-1].setZero();
@@ -683,11 +717,21 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   for (int i = 0; i < cloud->size(); i++) {
     std::vector<int> k_indices;
     std::vector<float> k_sq_distances;
+    int num_reliable_neighbors = 0;
     kdtree.nearestKSearch(cloud->at(i), k_correspondences_, k_indices, k_sq_distances);
 
-    Eigen::Matrix<double, 4, -1> neighbors(4, k_correspondences_);
+    // Get number of reliable neighbors
     for (int j = 0; j < k_indices.size(); j++) {
-      neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
+      if (k_sq_distances[j] < knn_max_distance_){
+        ++num_reliable_neighbors;
+      }
+    }
+
+    Eigen::Matrix<double, 4, -1> neighbors(4, num_reliable_neighbors);
+    for (int j = 0; j < k_indices.size(); j++) {
+      if (k_sq_distances[j] < knn_max_distance_){
+        neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
+      }
     }
 
     neighbors.colwise() -= neighbors.rowwise().mean().eval();
@@ -728,7 +772,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
             std::cerr << "you need to set method (ex: RegularizationMethod::PLANE)" << std::endl;
             abort();
           case RegularizationMethod::PLANE:
-            values = Eigen::Vector3d(1, 1, 1e-3);
+            values = Eigen::Vector3d(1e-2, 1e-2, 1e-5); //1,1,1e-3
             break;
           case RegularizationMethod::MIN_EIG:
             values = svd.singularValues().array().max(1e-3);
@@ -743,9 +787,12 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
               values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
             }
             else{          
-              values = svd.singularValues() / svd.singularValues()(1);
-              values = values.array().max(1e-3);
+              values = svd.singularValues() / svd.singularValues()(1) * 1e-2;
+              // values = values.array().max(1e-3);
             }
+            break;
+          case RegularizationMethod::TEST:
+            values = Eigen::Vector3d(1e-2, 1e-2, 1e-5); //1,1,1e-3
         }
         // use regularized covariance
         covariances[filter[i]-1].setZero();
@@ -765,7 +812,7 @@ template <typename PointSource, typename PointTarget, typename SearchMethodSourc
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setCovariances(
 	const std::vector<float>& input_rotationsq,
 	const std::vector<float>& input_scales,
-	std::vector<Eigen::Matrix4d, 
+	std::vector<Eigen::Matrix4d,
   Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances,
   std::vector<float>& rotationsq,
   std::vector<float>& scales) 
@@ -793,7 +840,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 		  std::cerr << "here must not be reached" << std::endl;
 		  abort();
 		case RegularizationMethod::PLANE:
-		  singular_values = Eigen::Vector3d(1, 1, 1e-3);
+		  singular_values = Eigen::Vector3d(1e-2, 1e-2, 1e-5); //1,1,1e-3
 		  break;
 		case RegularizationMethod::MIN_EIG:
 		  singular_values = singular_values.array().max(1e-3);
@@ -808,11 +855,13 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 		  	singular_values = Eigen::Vector3d(1e-3, 1e-3, 1e-3);
 		  }
 		  else{          
-			  singular_values = singular_values / singular_values(1);
-			  singular_values = singular_values.array().max(1e-3);
+			  singular_values = singular_values / singular_values(1) * 1e-2;
+			  // singular_values = singular_values.array().max(1e-3);
 		  }
-		  break;      
-
+		  break;
+    case RegularizationMethod::TEST:
+      // singular_values = singular_values / singular_values(1) * 1e-2;
+      break;
 		case RegularizationMethod::NONE:
 		  // do nothing
 		  break;

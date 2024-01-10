@@ -202,6 +202,7 @@ PYBIND11_MODULE(pygicp, m) {
     .def("set_num_threads", &FastGICP::setNumThreads)
     .def("set_correspondence_randomness", &FastGICP::setCorrespondenceRandomness)
     .def("set_max_correspondence_distance", &FastGICP::setMaxCorrespondenceDistance)
+    .def("set_max_knn_distance", &FastGICP::setKNNMaxDistance)
     .def("get_source_rotationsq", [] (FastGICP& gicp){
       return py::array(gicp.getSourceRotationsqSize(), gicp.getSourceRotationsq().data());
       // std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> source_rotationsq = gicp.getSourceRotationsq();
