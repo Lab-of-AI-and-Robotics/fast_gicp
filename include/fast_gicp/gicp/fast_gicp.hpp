@@ -8,6 +8,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/search/search.h>
 #include <pcl/registration/registration.h>
+#include <pcl/filters/filter.h>
 #include <fast_gicp/gicp/lsq_registration.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
 #include <ctime>

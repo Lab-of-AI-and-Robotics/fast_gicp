@@ -227,16 +227,15 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
     throw std::invalid_argument("FastGICP: destination cloud cannot be identical to source or target");
   }
   if (source_covs_.size() != input_->size()) {
-//    std::cout<<"compute source cov"<<std::endl;
+    // std::cout<<"compute source cov"<<std::endl;
     // calculate_covariances(input_, *search_source_, source_covs_, source_rotationsq_, source_scales_);
     // calculate_covariances_withz(input_, *search_source_, source_covs_, source_rotationsq_, source_scales_, source_z_values_);
     calculate_source_covariances_with_filter(input_, *search_source_, source_covs_, source_rotationsq_, source_scales_, source_filter_);
   }
   if (target_covs_.size() != target_->size()) {
-  //  std::cout<<"compute target cov"<<std::endl;
+    // std::cout<<"compute target cov"<<std::endl;
     calculate_covariances(target_, *search_target_, target_covs_, target_rotationsq_, target_scales_);
   }
-
   LsqRegistration<PointSource, PointTarget>::computeTransformation(output, guess);
 }
 
@@ -257,13 +256,19 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 #pragma omp parallel for num_threads(num_threads_) firstprivate(k_indices, k_sq_dists) schedule(guided, 8)
   for (int i = 0; i < input_->size(); i++) {
     PointTarget pt;
+    
     pt.getVector4fMap() = trans_f * input_->at(i).getVector4fMap();
-
+    
+    // if (!pcl::isFinite(pt)){
+    //   // std::cout << trans_f.data() << std::endl;
+    //   // std::cout << pt.x << pt.y << pt.z << std::endl;
+    //   continue;
+    // }
+    
     search_target_->nearestKSearch(pt, 1, k_indices, k_sq_dists);
-
+    
     sq_distances_[i] = k_sq_dists[0];
     correspondences_[i] = k_sq_dists[0] < corr_dist_threshold_ * corr_dist_threshold_ ? k_indices[0] : -1;
-
     if (correspondences_[i] < 0) {
       continue;
     }
@@ -274,8 +279,16 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 
     Eigen::Matrix4d RCR = cov_B + trans.matrix() * cov_A * trans.matrix().transpose();
     RCR(3, 3) = 1.0;
-    mahalanobis_[i] = RCR.inverse();
-    mahalanobis_[i](3, 3) = 0.0f;
+
+    if (RCR.determinant() == 0){
+      // std::cout << "mahalanobis value will be NaN" << std::endl;
+      mahalanobis_[i] = RCR.completeOrthogonalDecomposition().pseudoInverse();
+      mahalanobis_[i](3, 3) = 0.0f;
+    }
+    else{
+      mahalanobis_[i] = RCR.inverse();
+      mahalanobis_[i](3, 3) = 0.0f;
+    }
   }
 }
 
@@ -609,12 +622,14 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
       }
     }
 
+
     Eigen::Matrix<double, 4, -1> neighbors(4, num_reliable_neighbors);
     for (int j = 0; j < k_indices.size(); j++) {
       if (k_sq_distances[j] < knn_max_distance_){
         neighbors.col(j) = cloud->at(k_indices[j]).getVector4fMap().template cast<double>();
       }
     }
+
     
     neighbors.colwise() -= neighbors.rowwise().mean().eval();
     Eigen::Matrix4d cov = neighbors * neighbors.transpose() / k_correspondences_;
@@ -669,7 +684,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
               values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
             }
             else{          
-              values = svd.singularValues() / svd.singularValues()(1) * 1e-1;
+              values = svd.singularValues() / svd.singularValues()(1);
               // values = values.array().max(1e-3);
             }
             break;
@@ -684,6 +699,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
     }
   }
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(newCloud);
+  
   search_source_->setInputCloud(newCloud);
   // std::cout << "Cloud size : " << newCloud->size() << "/cov size : " << covariances.size() << "/rots size : " << rotationsq.size()/4 << std::endl;
   return true;
@@ -787,7 +803,7 @@ bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
               values = Eigen::Vector3d(1e-9, 1e-9, 1e-9);
             }
             else{          
-              values = svd.singularValues() / svd.singularValues()(1) * 1e-1;
+              values = svd.singularValues() / svd.singularValues()(1);
               // values = values.array().max(1e-3);
             }
             break;
@@ -855,7 +871,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 		  	singular_values = Eigen::Vector3d(1e-3, 1e-3, 1e-3);
 		  }
 		  else{          
-			  singular_values = singular_values / singular_values(1) * 1e-1;
+			  singular_values = singular_values / singular_values(1);
 			  // singular_values = singular_values.array().max(1e-3);
 		  }
 		  break;

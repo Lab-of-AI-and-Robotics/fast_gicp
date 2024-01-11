@@ -64,7 +64,6 @@ void LsqRegistration<PointTarget, PointSource>::computeTransformation(PointCloud
 
   for (int i = 0; i < max_iterations_ && !converged_; i++) {
     nr_iterations_ = i;
-
     Eigen::Isometry3d delta;
     if (!step_optimize(x0, delta)) {
       std::cerr << "lm not converged!!" << std::endl;
@@ -106,6 +105,7 @@ template <typename PointTarget, typename PointSource>
 bool LsqRegistration<PointTarget, PointSource>::step_gn(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta) {
   Eigen::Matrix<double, 6, 6> H;
   Eigen::Matrix<double, 6, 1> b;
+
   double y0 = linearize(x0, &H, &b);
 
   Eigen::LDLT<Eigen::Matrix<double, 6, 6>> solver(H);
@@ -133,6 +133,7 @@ bool LsqRegistration<PointTarget, PointSource>::step_lm(Eigen::Isometry3d& x0, E
 
   double nu = 2.0;
   for (int i = 0; i < lm_max_iterations_; i++) {
+
     Eigen::LDLT<Eigen::Matrix<double, 6, 6>> solver(H + lm_lambda_ * Eigen::Matrix<double, 6, 6>::Identity());
     Eigen::Matrix<double, 6, 1> d = solver.solve(-b);
 
